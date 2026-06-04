@@ -1,0 +1,5 @@
+.env
+new_proj_env/
+database/*.db
+output/
+__pycache__/
