@@ -4,13 +4,14 @@ from langchain_community.agent_toolkits import create_sql_agent
 print("Agent oluşturuluyor...")
 
 agent_executor = create_sql_agent(
-    llm=llm,
-    toolkit=toolkit,
-    verbose=True,
-    agent_type="tool-calling"
+    llm=llm,#zeka modeli
+    toolkit=toolkit,#toolkit, SQL sorgularını oluşturmak ve yorumlamak için kullanılan araç seti
+    verbose=True,#ajanın her adımını ayrıntılı olarak gösterir
+    agent_type="tool-calling"#önce tool çağırır sonra cevaba döner
 )
 
-soru = "Veritabanında toplam kaç adet müşteri (customers) var? Sadece sayıyı söyle."
+
+soru = "en çok sipariş hangi şehirden verildi?"
 print(f"Patronun Sorusu: {soru}\n" + "-"*30)
 
 # Sistemin çalışması (Ateşleme)
