@@ -21,6 +21,9 @@ def sql_yazan(state:AgentState) -> dict:
     
     prompt = f"""Sen kıdemli bir SQLite veri analistisin.
     Aşağıdaki veritabanı şemasına bakarak yöneticinin sorusunu cevaplayacak SADECE çalıştırılabilir bir SQL kodu yaz.
+    
+    KATI KURAL: Eğer sorulan kavram şemada KESİNLİKLE yoksa, ASLA inisiyatif alıp başka tablolara (örneğin 'satıcı') eşleyerek uydurma yapma. Böyle bir durum tespit edersen kod YAZMA, sadece ve sadece 'YAPILAMAZ' kelimesini döndür.
+    
     Asla açıklama yapma. Asla markdown (```sql) formatı kullanma. Sadece saf SQL kodunu ver.
     {hata_uyarisi}
     Şema:
@@ -35,6 +38,10 @@ def sql_yazan(state:AgentState) -> dict:
 def sql_calistiran(state:AgentState) -> dict:
     sql_kodu = state["sql_query"]
     print(f"\nDenenen SQL sorgusu: \n{sql_kodu}")
+
+    if sql_kodu == "YAPILAMAZ":
+        print("veri yokluğu tespit ettik sql sorgusu iptal edildi")
+        return {"answer":"VERİ_YOK :  istenilen sorgu veritabanında bulunmuyor. :=)"}
 
     try:
         sonuc = db.run(sql_kodu)
@@ -65,6 +72,9 @@ def hata_kontrol(state:AgentState) ->str:
     if "hata" in sonuc.lower() or "error" in sonuc.lower():
         print("sonuç işleniyor")
         return "hatali_dondu"
+    elif "veri_yok" in sonuc.lower():
+        print("imkansız soru")
+        return "basarili"
     else:
         print("kod temiz")
         return "basarili"
@@ -85,13 +95,13 @@ workflow.add_conditional_edges(
     }
 )
 
-# Raporlayıcı işini bitirince süreç tamamlanır
+# Raporlayıcı işini bitirince süreç tamamla
 workflow.add_edge("raporlayici", END)
 
 app = workflow.compile()
 
 if __name__ == "__main__":
-    test = {"question": "en çok hangi ürünler alındı?"}
+    test = {"question": "Sistemdeki Drone siparişlerini teslim eden kargo kuryelerinin (couriers) isimlerini ve taşıdıkları toplam paket sayılarını listele."}
     print("\nWorkflow çalıştırılıyor...\n" + "-"*30)
     
     final = app.invoke(test)
