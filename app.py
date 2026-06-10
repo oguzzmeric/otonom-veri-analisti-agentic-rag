@@ -1,6 +1,7 @@
 import streamlit as st
 from graph_engine import app as agent_app
 from tools import db  # Veritabanı şemasını sol panele çekmek için ekledik
+import os
 
 # 1. Sayfa Ayarları ve Görsel Tema (Wide moda geçtik)
 st.set_page_config(
@@ -28,17 +29,32 @@ st.sidebar.info("""
 st.sidebar.write("---")
 st.sidebar.write("🔗 **Aktif Tablo Şemaları ve İlişkileri:**")
 
+# 🔥 OTONOM DEDEKTİF: Tablolar kaybolursa sebebi şak diye ekrana basacak katman
 try:
-    # LangChain SQLDatabase nesnesinden veritabanındaki tüm tabloları dinamik çekiyoruz
     tablolar = db.get_usable_table_names()
-    for tablo in tablolar:
-        # Her tabloyu tıklanabilir akordiyon (expander) içine alıyoruz
-        with st.sidebar.expander(f"📦 {tablo}"):
-            # Tablonun CREATE TABLE şemasını ve ilk 3 satır örneğini SQL kodu olarak basıyoruz
-            tablo_semasi = db.get_table_info([tablo])
-            st.code(tablo_semasi, language="sql")
+    
+    if not tablolar:
+        st.sidebar.warning("⚠️ Veritabanına bağlandı ancak içinde hiç tablo bulunamadı!")
+        # Sunucudaki gerçek klasör yapısını kontrol ediyoruz (Case-Sensitivity kontrolü)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        db_folder = os.path.join(BASE_DIR, "database")
+        if os.path.exists(db_folder):
+            st.sidebar.write(f"📁 Sunucudaki `database` klasör içeriği: {os.listdir(db_folder)}")
+        else:
+            st.sidebar.error("❌ Sunucuda `database` klasörü fiziksel olarak bulunamadı!")
+    else:
+        for tablo in tablolar:
+            # Her tabloyu tıklanabilir akordiyon (expander) içine alıyoruz
+            with st.sidebar.expander(f"📦 {tablo}"):
+                try:
+                    # Tek bir tablo şeması patlarsa tüm sidebar çökmesin diye izole ettik
+                    tablo_semasi = db.get_table_info([tablo])
+                    st.code(tablo_semasi, language="sql")
+                except Exception as table_err:
+                    st.error(f"Şema okuma hatası: {str(table_err)}")
+                    
 except Exception as e:
-    st.sidebar.error(f"Şema yüklenirken hata oluştu: {str(e)}")
+    st.sidebar.error(f"🚨 Genel Şema Yükleme Hatası: {str(e)}")
 
 st.sidebar.write("---")
 st.sidebar.caption("🤖 Powered by LangGraph & Streamlit")
