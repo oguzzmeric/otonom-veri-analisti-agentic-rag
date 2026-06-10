@@ -22,7 +22,9 @@ def sql_yazan(state:AgentState) -> dict:
     prompt = f"""Sen kıdemli bir SQLite veri analistisin.
     Aşağıdaki veritabanı şemasına bakarak yöneticinin sorusunu cevaplayacak SADECE çalıştırılabilir bir SQL kodu yaz.
     
-    KATI KURAL: Eğer sorulan kavram şemada KESİNLİKLE yoksa, ASLA inisiyatif alıp başka tablolara (örneğin 'satıcı') eşleyerek uydurma yapma. Böyle bir durum tespit edersen kod YAZMA, sadece ve sadece 'YAPILAMAZ' kelimesini döndür.
+    KATI KURAL: Veritabanı şeması İNGİLİZCE tablolardan oluşmaktadır ancak kullanıcı TÜRKÇE sorular soracaktır. Türkçe kavramları şemadaki mantıklı karşılıklarıyla (örn: ürün -> products, sipariş -> orders, gelir/ciro -> price veya payment_value, şehir -> customer_city/seller_city) KESİNLİKLE eşleştirmeli ve SQL yazmalısın. Korkma, mantıklı eşleşmeler yap.
+    
+    YALNIZCA şemada hiçbir şekilde karşılığı olmayan, tamamen uydurma veya eksik olan kavramlar için (örneğin şemada hiçbir kurye/courier tablosu veya sütunu yokken 'kurye' sorulursa) kod yazma ve sadece 'YAPILAMAZ' kelimesini döndür.
     
     Asla açıklama yapma. Asla markdown (```sql) formatı kullanma. Sadece saf SQL kodunu ver.
     {hata_uyarisi}
