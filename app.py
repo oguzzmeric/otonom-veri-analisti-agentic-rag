@@ -63,5 +63,26 @@ if user_query := st.chat_input("Örn: São Paulo şehrindeki en karlı 3 kategor
             except Exception as e:
                 cevap = f"Şantiyede beklenmedik bir arıza oluştu: {str(e)}"
         
+        # Ajanın ürettiği Türkçe cevabı ekrana basıyoruz
         st.markdown(cevap)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
+        
+        # 🔥 YENİ EKLENTİ: Kaputun Altı (SQL Sorgusunu Gösterme)
+        if "result" in locals() and isinstance(result, dict):
+            # Şık bir açılır kapanır kutu (Expander) oluşturuyoruz
+            with st.expander("🕵️‍♂️ Kaputun Altı: Çalıştırılan SQL Sorgusu"):
+                # LangGraph state'i içindeki mesajları tarıyoruz
+                if "messages" in result:
+                    sql_bulundu = False
+                    for msg in result["messages"]:
+                        icerik = str(msg.content)
+                        # İçinde SELECT ve FROM geçen metinleri yakalayıp SQL formatında basıyoruz
+                        if "SELECT" in icerik.upper() and "FROM" in icerik.upper():
+                            st.code(icerik, language="sql")
+                            sql_bulundu = True
+                    
+                    if not sql_bulundu:
+                        st.info("Bu adımda bir SQL sorgusu yakalanamadı veya işlem LLM içinde çözüldü.")
+                else:
+                    # Eğer state farklı bir yapıdaysa ham veriyi göster
+                    st.json(result)
