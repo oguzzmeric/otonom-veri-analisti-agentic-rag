@@ -7,9 +7,12 @@ from langchain_openai import ChatOpenAI
 #key upload
 load_dotenv()
 
-#köprü oluşturma
-db_path = "sqlite:///database/olist.db"
-db = SQLDatabase.from_uri(db_path) #SQLDatabase, bir SQL veritabanına bağlanmak ve sorgular çalıştırma
+# 🔥 KANKA DEĞİŞİKLİK BURADA: Bulut ve lokal uyumluluğu için mutlak yol (Absolute Path) hesabı
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FULL_DB_PATH = os.path.join(BASE_DIR, "database", "olist.db")
+
+#köprü oluşturma (Başına f ve 3 adet / koyarak tam mutlak yolu enjekte ediyoruz)
+db = SQLDatabase.from_uri(f"sqlite:///{FULL_DB_PATH}") #SQLDatabase, bir SQL veritabanına bağlanmak ve sorgular çalıştırma
 
 #creativity istemediğimiz için temperature 0 yapıyoruz
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
@@ -21,4 +24,4 @@ tools = toolkit.get_tools()
 #sqldatabase parametreleri şunlardır:
 #llm: SQL sorgularını oluşturmak ve yorumlamak için kullanılan dil modeli.
 #db: veritabanı bağlantısı.
-#top_k: SQL sorgularını oluştururken dikkate alınacak en fazla sorgu sayısı
+#top_k: SQL sorgularını oluştururken dikkate alınacak en fazla sorgu sayısı    tools budur
