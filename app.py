@@ -1,57 +1,67 @@
 import streamlit as st
 from graph_engine import app as agent_app
+from tools import db  # Veritabanı şemasını sol panele çekmek için ekledik
 
-# 1. Sayfa Ayarları ve Görsel Tema
+# 1. Sayfa Ayarları ve Görsel Tema (Wide moda geçtik)
 st.set_page_config(
     page_title="Otonom Veri Analisti", 
     page_icon="📊", 
-    layout="centered"
+    layout="wide"  
 )
 
+# 2. Sol Panel (Sidebar) - Canlı Veritabanı Şeması
+st.sidebar.title("🗄️ Veritabanı Yapısı")
+st.sidebar.write("Ajanın erişebildiği aktif tablolar ve kolon yapıları:")
+
+try:
+    # LangChain SQLDatabase nesnesinden veritabanındaki tüm tabloları dinamik çekiyoruz
+    tablolar = db.get_usable_table_names()
+    for tablo in tablolar:
+        # Her tabloyu tıklanabilir akordiyon (expander) içine alıyoruz
+        with st.sidebar.expander(f"📦 {tablo}"):
+            # Tablonun CREATE TABLE şemasını ve ilk 3 satır örneğini SQL kodu olarak basıyoruz
+            tablo_semasi = db.get_table_info([tablo])
+            st.code(tablo_semasi, language="sql")
+except Exception as e:
+    st.sidebar.error(f"Şema yüklenirken hata oluştu: {str(e)}")
+
+st.sidebar.write("---")
+st.sidebar.caption("🤖 Powered by LangGraph & Streamlit")
+
+# 3. Ana Ekran Başlıkları
 st.title("📊 Otonom Veri Analisti")
 st.caption("LangGraph & SOTA Döngüsel Mimari ile Kendi Kendini İyileştiren SQL Ajanı")
 st.write("---")
 
-# 2. Sohbet Hafızasını (Session State) Başlatma
+# 4. Sohbet Hafızasını (Session State) Başlatma
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Merhaba patron! Veritabanındaki tablolarla ilgili neyi analiz etmemi istersin?"}
+        {"role": "assistant", "content": "Merhaba patron! Sol taraftaki tabloları ve kolonları inceleyerek bana veritabanıyla ilgili sormak istediğin analizi iletebilirsin."}
     ]
 
-# 3. Geçmiş Mesajları Ekrana Çizme
+# 5. Geçmiş Mesajları Ekrana Çizme
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 4. Kullanıcı Girdisi ve Ajanın Tetiklenmesi
+# 6. Kullanıcı Girdisi ve Ajanın Tetiklenmesi
 if user_query := st.chat_input("Örn: São Paulo şehrindeki en karlı 3 kategori nedir?"):
     
-    # Kullanıcı mesajını hafızaya ekle ve ekrana bas
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.chat_message("user"):
         st.markdown(user_query)
         
-    # Asistan rolünde spinner (yükleniyor animasyonu) başlat
     with st.chat_message("assistant"):
         with st.spinner("Ajan departmanları çalışıyor: Şema okunuyor, SQL yazılıyor ve test ediliyor..."):
             try:
                 inputs = {"question": user_query}
-                
-                # RECURSION LIMIT: Ajanın en fazla 5 kere döngüye girmesine izin veriyoruz.
-                # Bu sınır, ajanın kendini tamir etmesi (Self-Healing) için yeterli alanı tanırken, 
-                # hata döngüsüne girip 429 token limitini patlatmasını kesin olarak engeller.
                 config = {"recursion_limit": 5}
-                
-                # Arka plandaki LangGraph motoruna soruyu ve güvenlik ayarını kargoluyoruz
                 result = agent_app.invoke(inputs, config=config)
                 
-                # KORUMA KÖPRÜSÜ: Çantadan veri çekerken hem 'final_report' hem de 'final_rapor' 
-                # anahtarlarını kontrol ederek isim uyuşmazlığı riskini sıfıra indiriyoruz.
                 cevap = result.get("final_report") or result.get("final_rapor") or "Rapor üretilirken sistemsel bir hata oluştu."
                 
             except Exception as e:
                 cevap = f"Şantiyede beklenmedik bir arıza oluştu: {str(e)}"
         
-        # Temizlenen cevabı ekrana bas ve hafızaya mühürle
         st.markdown(cevap)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
