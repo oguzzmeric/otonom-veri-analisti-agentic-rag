@@ -11,21 +11,44 @@ load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FULL_DB_PATH = os.path.join(BASE_DIR, "database", "olist.db")
 
-# 🔥 SOTA HAMLE: Ajanın labirentte kaybolmasını engelleyen özel şema ipuçları (Data Catalog)
+# 🔥 SOTA HAMLE V2: Tablolar arası köprüleri ve ilişkileri (Ontoloji) ajana öğretiyoruz
 custom_hints = {
+    "customers": """CREATE TABLE customers (
+        customer_id TEXT,
+        customer_unique_id TEXT,
+        customer_zip_code_prefix INTEGER,
+        customer_city TEXT,
+        customer_state TEXT
+    );
+    /* ⚠️ MÜHENDİSLİK NOTU:
+    Müşterilerin şehir (customer_city) bilgilerini ödemeler veya sipariş kalemleriyle bağlamak için DOĞRUDAN 'orders' tablosunu kullanmalısınız.
+    İlişki: customers.customer_id = orders.customer_id
+    */""",
+
+    "orders": """CREATE TABLE orders (
+        order_id TEXT,
+        customer_id TEXT,
+        order_status TEXT,
+        order_purchase_timestamp TEXT
+    );
+    /* ⚠️ MÜHENDİSLİK NOTU (KONTROL KÖPRÜSÜ):
+    Bu tablo veritabanının merkez köprüsüdür!
+    1. Şehir bazlı ödeme analizlerinde (Örn: Rio'dan verilen siparişler nasıl ödenmiş?):
+       customers -> orders -> order_payments tablolarını sırasıyla JOIN yapmalısınız.
+       Bağlantı: customers.customer_id = orders.customer_id AND orders.order_id = order_payments.order_id
+    */""",
+
     "order_items": """CREATE TABLE order_items (
         order_id TEXT,
         order_item_id INTEGER,
         product_id TEXT,
         seller_id TEXT,
-        shipping_limit_date TEXT,
         price REAL,
         freight_value REAL
     );
-    /* ⚠️ KRİTİK ANALİZ KURALLARI (MÜHENDİSLİK NOTU):
-    1. Satıcıların (seller_id) elde ettiği toplam GELİR, CİRO veya KAZANÇ hesaplanırken BU tablodaki 'price' sütunu toplanmalıdır -> SUM(price).
-    2. Bir satıcının yaptığı "en çok satış" veya "sipariş adedi", bu tablodaki satır sayısıdır -> COUNT(order_id).
-    3. Satıcı bazlı ciro analizlerinde ASLA 'order_payments' tablosunu kullanmayın ve onunla JOIN yapmayın. 'order_payments' tablosu mükerrer (duplicate) sonuçlar üretir ve hesaplamayı patlatır.
+    /* ⚠️ KRİTİK ANALİZ KURALLARI:
+    1. Satıcıların (seller_id) elde ettiği toplam GELİR hesaplanırken BU tablodaki 'price' sütunu toplanmalıdır -> SUM(price).
+    2. Satıcı bazlı ciro analizlerinde ASLA 'order_payments' tablosunu kullanmayın.
     */""",
     
     "order_payments": """CREATE TABLE order_payments (
@@ -35,13 +58,13 @@ custom_hints = {
         payment_installments INTEGER,
         payment_value REAL
     );
-    /* ⚠️ KRİTİK ANALİZ KURALLARI (MÜHENDİSLİK NOTU):
-    1. Bu tablo sadece genel sipariş ödemelerini içerir. 
-    2. SATICI (seller_id) bazlı ciro, kazanç veya gelir hesaplamalarında BU TABLOYU KULLANMAYIN. Satıcı cirosu sadece 'order_items' tablosundaki 'price' sütunundan hesaplanır.
+    /* ⚠️ KRİTİK ANALİZ KURALLARI:
+    1. Bu tablo siparişlerin ödeme yöntemlerini (payment_type) içerir.
+    2. Şehir bazlı ödeme sorgularında 'orders' ve 'customers' tablolarıyla 'order_id' üzerinden JOIN yapılarak kullanılmalıdır.
     */"""
 }
 
-# köprü oluşturma (Özel ipuçlarını veritabanı motoruna bağlıyoruz)
+# köprü oluşturma
 db = SQLDatabase.from_uri(
     f"sqlite:///{FULL_DB_PATH}", 
     custom_table_info=custom_hints
