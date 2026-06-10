@@ -10,8 +10,9 @@ st.set_page_config(
 )
 
 
-st.sidebar.title("🗄️ Veritabanı Yapısı")
-st.sidebar.write("Ajanın erişebildiği aktif tablolar ve kolon yapıları:")
+st.sidebar.title("Data catalog")
+st.sidebar.write("Olist.db aktif tablolar")
+st.sidebar.write("1.200.000 veri")
 
 try:
     tablolar = db.get_usable_table_names()
@@ -23,16 +24,16 @@ except Exception as e:
     st.sidebar.error(f"Şema yüklenirken hata oluştu: {str(e)}")
 
 st.sidebar.write("---")
-st.sidebar.caption("🤖 Powered by LangGraph & Streamlit")
+st.sidebar.caption("Powered by LangGraph & Streamlit")
 
-st.title("📊 Otonom Veri Analisti")
+st.title("📊 Olist Veri Analisti")
 st.caption("LangGraph & SOTA Döngüsel Mimari ile Kendi Kendini İyileştiren SQL Ajanı")
 st.write("---")
 
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Merhaba patron! Sol taraftaki tabloları ve kolonları inceleyerek bana veritabanıyla ilgili sormak istediğin analizi iletebilirsin."}
+        {"role": "assistant", "content": "Merhaba patron! Sol taraftaki 1.200.000 veri ile ilgilitüm soruların için buradayım "}
     ]
 
 for message in st.session_state.messages:
