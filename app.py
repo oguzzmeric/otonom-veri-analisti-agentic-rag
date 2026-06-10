@@ -9,10 +9,24 @@ st.set_page_config(
     layout="wide"  
 )
 
-# 2. Sol Panel (Sidebar) - Data Catalog
-st.sidebar.title("Data catalog")
-st.sidebar.write("Olist.db aktif tablolar")
-st.sidebar.write("1.200.000 veri")
+# 2. Sol Panel (Sidebar) - Kurumsal Data Catalog & Veri Özeti
+st.sidebar.title("🗄️ Data Catalog")
+st.sidebar.subheader("Olist E-Ticaret Veri Ambarı")
+st.sidebar.write(
+    "Brezilya'nın en büyük pazaryeri ekosistemine ait gerçek ve anonimleştirilmiş "
+    "operasyonel veritabanı."
+)
+
+# Seksi bir metrik kutusu içinde veri hacmini gösteriyoruz
+st.sidebar.info("""
+📊 **Veri Kümesi Metrikleri:**
+- **100.000+** Benzersiz Sipariş (Orders)
+- **1.200.000+** Toplam İlişkisel Satır Verisi
+- **Kapsam:** Müşteri Konumları, Ürün Katalogları, Satıcı Performansları, Ödeme Detayları ve Müşteri Yorumları (Reviews).
+""")
+
+st.sidebar.write("---")
+st.sidebar.write("🔗 **Aktif Tablo Şemaları ve İlişkileri:**")
 
 try:
     # LangChain SQLDatabase nesnesinden veritabanındaki tüm tabloları dinamik çekiyoruz
@@ -27,7 +41,7 @@ except Exception as e:
     st.sidebar.error(f"Şema yüklenirken hata oluştu: {str(e)}")
 
 st.sidebar.write("---")
-st.sidebar.caption("Powered by LangGraph & Streamlit")
+st.sidebar.caption("🤖 Powered by LangGraph & Streamlit")
 
 # 3. Ana Ekran Başlıkları
 st.title("📊 Olist Veri Analisti")
