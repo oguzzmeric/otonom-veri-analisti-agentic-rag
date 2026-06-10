@@ -55,7 +55,7 @@ if user_query := st.chat_input("Örn: São Paulo şehrindeki en karlı 3 kategor
         with st.spinner("Ajan departmanları çalışıyor: Şema okunuyor, SQL yazılıyor ve test ediliyor..."):
             try:
                 inputs = {"question": user_query}
-                config = {"recursion_limit": 5}
+                config = {"recursion_limit": 15}
                 result = agent_app.invoke(inputs, config=config)
                 
                 cevap = result.get("final_report") or result.get("final_rapor") or "Rapor üretilirken sistemsel bir hata oluştu."
