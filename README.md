@@ -1,36 +1,68 @@
-# 📊 Autonomous Data Analyst: Self-Healing SQL Agent with LangGraph
+# Autonomous Data Analyst: Self-Correcting Text-to-SQL Agent (LangGraph)
 
-An advanced, enterprise-grade Autonomous Text-to-SQL Data Analyst Agent built on top of **LangGraph**'s cyclical state-machine architecture. Unlike traditional linear pipelines (e.g., vanilla LangChain) that crash upon encountering syntax or logical database runtime errors, this system utilizes a **State-Driven Self-Healing Loop** to dynamically debug, rewrite, and re-execute complex SQL queries.
+Ask a business question in Turkish, get an answer from a 1.2M-row e-commerce database. The agent writes SQL, runs it, and if the database returns an error it feeds the error and the failed query back to the LLM and tries again, up to a fixed number of attempts.
 
-The architecture is fully stress-tested against the **Olist Brazilian E-Commerce Dataset**, managing an active relational database of over **1,200,000 operational rows**.
+Built with LangGraph, LangChain, GPT-4o-mini and Streamlit on the [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (SQLite, ~100k orders, ~1.2M rows across tables).
 
----
+## How it works
 
-## 🧠 Core Cognitive Architecture & Features
+```
+question ──► sql_yazan (write SQL) ──► sql_calistiran (run SQL) ──► raporlayici (answer in Turkish)
+                 ▲                              │
+                 └──── error + failed SQL ──────┘   (max 3 attempts)
+```
 
-* **State-Driven Self-Healing Loop:** If the database engine throws a runtime or syntax error, the raw traceback log is captured and injected back into the graph's `State`. The agent autonomously reasons over the error log, identifies the failure point, and rewrites the query within a configurable `Recursion Limit (15)`.
-* **Autonomous Conditional Aggregation:** Optimizes database execution paths by synthesizing complex analytical queries using high-level constructs like `SUM(CASE WHEN...)` or `AVG(CASE WHEN...)` in a single execution pass.
-* **Semantic Multi-Join Routing:** Resolves missing direct relationships between disjointed tables by parsing an ontological semantic layer injected into the table schemas, enabling flawless multi-table mapping (e.g., bridging `customers -> orders -> order_items -> order_payments`).
-* **Deterministic Guardrails:** Configured with zero LLM temperature to prevent hallucinations, ensuring that any query outside the schema's boundary or historical scope safely terminates with an explicit data-absence report rather than arbitrary code generation.
+- **Error-feedback loop:** a LangGraph `StateGraph` keeps the question, the last query, the database error and the attempt count in its state. On error it routes back to the SQL writer with the error message in the prompt.
+- **Schema hints:** table schemas are annotated with join paths and business rules (e.g. `customers → orders → order_items / order_payments`, seller revenue = `SUM(order_items.price)`), so multi-table questions join correctly.
+- **Out-of-scope questions:** if the schema has nothing that matches the question (e.g. couriers), the agent returns `YAPILAMAZ` and reports that the data does not exist instead of inventing SQL.
+- **Read-only guard:** only single `SELECT` / `WITH` statements are executed.
+- **Deterministic generation:** GPT-4o-mini with `temperature=0`.
 
----
+## Example questions
 
-## 🛠️ Tech Stack
+- "En çok sipariş hangi şehirden verildi?"
+- "São Paulo şehrindeki en karlı 3 kategori nedir?"
+- "Rio de Janeiro'daki müşteriler en çok hangi ödeme yöntemini kullanıyor?"
 
-* **Orchestration & State Management:** LangGraph
-* **Agentic Toolkits:** LangChain SQLDatabaseToolkit
-* **Inference Engine:** OpenAI GPT-4o-Mini (`temperature=0`)
-* **Database Engine:** SQLite (OLAP emulation)
-* **Frontend UI:** Streamlit (Wide-mode Operational Dashboard)
+## Setup
 
----
+The database (`database/olist.db`, ~113 MB) is stored with **Git LFS**. Install Git LFS before cloning, otherwise you only get a small pointer file.
 
-## 📂 Project Structure
+```bash
+git lfs install
+git clone https://github.com/oguzzmeric/otonom-veri-analisti-agentic-rag.git
+cd otonom-veri-analisti-agentic-rag
+git lfs pull                      # downloads olist.db
+
+python -m venv .venv
+# Windows: .venv\Scripts\activate   |   Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+
+cp .env.example .env              # then put your OpenAI key in .env
+streamlit run app.py
+```
+
+To run the graph from the command line without the UI: `python graph_engine.py`
+
+## Project structure
 
 ```text
-├── database/
-│   └── olist.db             # Relational database containing 1.2M rows
-├── app.py                   # Streamlit UI & LangGraph compilation loop
-├── tools.py                 # Semantic knowledge layer & SQL toolkit configuration
-├── .env.example             # Template for environment variables
-└── requirements.txt         # Dependency tree
+├── database/olist.db    # SQLite database (Git LFS)
+├── app.py               # Streamlit UI: chat, schema browser, executed SQL + attempt count
+├── graph_engine.py      # LangGraph state machine: write → run → (retry) → report
+├── tools.py             # Database connection, schema hints, LLM config
+├── prompts.py           # Prompt templates
+├── test.py              # Early prototype with LangChain's create_sql_agent (for comparison)
+├── .env.example
+└── requirements.txt
+```
+
+## Limitations
+
+- Questions and answers are in Turkish; the schema is in English.
+- No evaluation set yet: accuracy has not been measured on a fixed list of questions.
+- Schema hints cover the four core tables; other tables rely on the raw schema.
+
+## Data license
+
+The Olist dataset is published on Kaggle under CC BY-NC-SA 4.0.

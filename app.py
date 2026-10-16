@@ -61,7 +61,7 @@ st.sidebar.caption("🤖 Powered by LangGraph & Streamlit")
 
 # 3. Ana Ekran Başlıkları
 st.title("📊 Olist Veri Analisti")
-st.caption("LangGraph & SOTA Döngüsel Mimari ile Kendi Kendini İyileştiren SQL Ajanı")
+st.caption("LangGraph ile hatalı SQL sorgusunu kendi düzelten Text-to-SQL ajanı")
 st.write("---")
 
 # 4. Sohbet Hafızasını (Session State) Başlatma
@@ -86,7 +86,7 @@ if user_query := st.chat_input("Örn: São Paulo şehrindeki en karlı 3 kategor
         with st.spinner("Ajan departmanları çalışıyor: Şema okunuyor, SQL yazılıyor ve test ediliyor..."):
             try:
                 inputs = {"question": user_query}
-                config = {"recursion_limit": 15}
+                config = {"recursion_limit": 15}  # asıl sınır MAX_DENEME=3, bu yedek güvenlik
                 result = agent_app.invoke(inputs, config=config)
                 
                 cevap = result.get("final_report") or result.get("final_rapor") or "Rapor üretilirken sistemsel bir hata oluştu."
@@ -98,18 +98,10 @@ if user_query := st.chat_input("Örn: São Paulo şehrindeki en karlı 3 kategor
         st.markdown(cevap)
         st.session_state.messages.append({"role": "assistant", "content": cevap})
         
-        # 7. Kaputun Altı (SQL Sorgusunu Gösterme Modülü)
-        if "result" in locals() and isinstance(result, dict):
-            with st.expander("Çalıştırılan SQL Sorgusu"):
-                if "messages" in result:
-                    sql_bulundu = False
-                    for msg in result["messages"]:
-                        icerik = str(msg.content)
-                        if "SELECT" in icerik.upper() and "FROM" in icerik.upper():
-                            st.code(icerik, language="sql")
-                            sql_bulundu = True
-                    
-                    if not sql_bulundu:
-                        st.info("Bu adımda bir SQL sorgusu yakalanamadı veya işlem LLM içinde çözüldü.")
-                else:
-                    st.json(result)
+        # 7. Kaputun Altı (Çalıştırılan SQL ve deneme sayısı)
+        if "result" in locals() and isinstance(result, dict) and result.get("sql_query"):
+            deneme = result.get("attempts", 1)
+            with st.expander(f"Çalıştırılan SQL Sorgusu ({deneme} deneme)"):
+                st.code(result["sql_query"], language="sql")
+                if result.get("error"):
+                    st.error(f"Son hata: {result['error']}")
